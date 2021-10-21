@@ -1,0 +1,106 @@
+begin:constant
+  lambda0 = 1.06 * micron
+  theta = 0.464
+  theta0 = 2*pi - theta
+end:constant
+
+
+begin:control
+  nx = 320
+  ny = 160
+
+  # nparticles = 1e6
+  # final time of simulation
+  t_end  = 2000 * femto
+  nprocx = 8
+  nprocy = 4
+
+  # size of domain
+  y_min = -250 * micron
+  y_max = 250 * micron
+  x_min = -200 * micron
+  x_max = 800 * micron
+end:control
+
+
+begin:boundaries
+  bc_x_min = conduct
+  bc_x_max = conduct
+
+  bc_y_min = conduct
+  bc_y_max = conduct
+end:boundaries
+
+
+begin:species
+  name = electron
+  charge = -1.0
+  mass = 1.0
+  number_density = 'Data/ele_den.dat'
+  temperature = 'Data/ele_tem.dat'
+end:species
+
+
+begin:species
+  name = ion
+  charge = 3.0
+  mass = 6.5
+  number_density = 'Data/ion_den.dat'
+  temperature = 'Data/ion_tem.dat'
+end:species
+
+
+begin:particles_from_file
+  species = electron
+
+  # position of particle
+  x_data  = 'Data/x.dat'
+  y_data  = 'Data/y.dat'
+  w_data  = 'Data/w.dat'
+  px_data = 'Data/px.dat'
+  py_data = 'Data/py.dat'
+end:particles_from_file
+
+
+begin:particles_from_file
+  species = ion
+
+  # position of particle
+  x_data  = 'Data/x.dat'
+  y_data  = 'Data/y.dat'
+  w_data  = 'Data/w.dat'
+  px_data = 'Data/px.dat'
+  py_data = 'Data/py.dat'
+end:particles_from_file
+
+
+begin:output
+  # number of timesteps between output dumps
+  dt_snapshot = 10 * femto
+  dt_average  = 10 * femto
+
+  # particles
+  particles = always + species
+  vx        = always + species
+  vy        = always + species
+  px        = always + species
+  py        = always + species
+  charge    = always + species
+
+  # Properties on grid
+  grid = always
+  ex = always
+  ey = always
+  ez = always
+  bx = always
+  by = always
+  bz = always
+
+  temperature = always + species + average
+  charge_density = always + species + average
+  ekbar = always + species + average
+  mass_density   = always + species
+  number_density = always + species
+end:output
+
+

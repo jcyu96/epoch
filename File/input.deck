@@ -1,0 +1,184 @@
+begin:constant
+  b0       = 717.35
+  n0       = 1.0e25
+  omega_p  = sqrt((n0*qe*qe)/(epsilon0*me))
+  dtime    = 5.68e-12/b0   #2-7.918fs
+  d0       = 5319.15*(n0^(-0.5))  #25-1.682 um
+  w0       = 1*d0
+  lx       = 408*d0
+  ly       = 51*d0
+  den      = (cosh((y-ly/2)/w0)^(-2)) * n0/(2*(0.2+0.2))
+  mag_x    = b0*tanh((y-ly/2)/w0)
+end:constant
+
+
+begin:control
+  nx = 2048
+  ny = 256
+
+  # Final time of simulation
+  t_end = 300*dtime
+
+  # Size of domain
+  x_min = 0
+  x_max = lx
+
+  y_min = 0
+  y_max = ly
+
+  # nprocx= 8
+  # nprocy= 1
+end:control
+
+
+begin:boundaries
+  bc_x_min = periodic
+  bc_x_max = periodic
+
+  bc_y_min = conduct
+  bc_y_max = conduct
+end:boundaries
+
+
+begin:species
+  name = positron
+  charge = 1
+  mass = 1.0
+  number_density = if((y gt 23*d0) and (y lt 28*d0), den, 0.0)
+  # distribution
+  use_maxwell_juttner = T
+  fractional_tail_cutoff = 10
+  nparticles = 2048*910*25/2
+  temperature = 102.4*kev
+end:species
+
+
+begin:species
+  name = back_positron
+  charge = 1
+  mass = 1.0
+  number_density = if((y gt 23*d0) and (y lt 28*d0), 0.0, den)
+  # distribution
+  use_maxwell_juttner = T
+  fractional_tail_cutoff = 10
+  nparticles = 2048*9*226/2
+  temperature = 102.4*kev
+end:species
+
+
+begin:species
+  name = eletron
+  charge = -1
+  mass = 1.0
+  number_density = if((y gt 23*d0) and (y lt 28*d0), den, 0.0)
+  # distribution
+  use_maxwell_juttner = T
+  fractional_tail_cutoff = 10
+  nparticles = 2048*910*25/2
+  temperature = 102.4*kev
+end:species
+
+
+begin:species
+  name = back_electron
+  charge = -1
+  mass = 1.0
+  number_density = if((y gt 23*d0) and (y lt 28*d0), 0.0, den)
+  # distribution
+  use_maxwell_juttner = T
+  fractional_tail_cutoff = 10
+  nparticles = 2048*9*226/2
+  temperature = 102.4*kev
+end:species
+
+
+begin:fields
+  bx = mag_x
+  by = 0.0
+  # by = 0.05*cos(2*pi*(x-x_max/2)/x_max)*cos(pi*(y-y_max/2)/y_max)
+end:fields
+
+
+begin:output
+  # Simulated time between output dumps
+  dt_snapshot = 5*dtime
+
+  # Properties on grid
+  grid = always
+  ex = always
+  ey = always
+  ez = always
+  bx = always
+  by = always
+  bz = always
+
+  number_density = always + species
+  ekbar = always + species
+  temperature = always + species
+
+  #other variables
+  absorption = always
+  distribution_functions = always
+  total_energy_sum = always
+end:output
+
+
+# begin:dist_fn
+#   name = en_total
+#   ndims = 1
+
+#   direction1 = dir_en
+#   range1 = (1,1)
+#   resolution1 = 1000
+
+#   include_species:positron
+#   include_species:electron
+# end:dist_fn
+
+
+# begin:dist_fn
+#   name = en_small
+#   ndims = 1
+
+#   direction1 = dir_en
+#   range1 = (1,1)
+#   resolution1 = 1000
+#   restrict_x = (0.47*408*d0, 0.54*408*d0)
+#   restrict_y = (0.4*51*d0, 0.59*51*d0)
+
+#   include_species:electron
+#   include_species:positron
+# end:dist_fn
+
+
+# begin:dist_fn
+#   name = en_big
+#   ndims = 1
+
+#   direction1 = dir_en
+#   range1 = (1,1)
+#   resolution1 = 1000
+#   restrict_x = (0.37*408*d0, 0.63*408*d0)
+#   restrict_y = (0.37*51*d0, 0.63*51*d0)
+
+#   include_species:electron
+#   include_species:positron
+# end:dist_fn
+
+
+# begin:dist_fn
+#   name = x_en
+#   ndims = 2
+  
+#   direction1 = dir_x
+#   direction2 = dir_en
+
+#   range1 = (1,1)
+#   range2 = (1,1)
+#   resolution1 = 1
+#   resolution2 = 1000
+#   restrict_x = (25.0*d0, 26.0*d0)
+  
+#   include_species:positron
+#   include_species:electron
+# end:dist_fn

@@ -1,0 +1,205 @@
+begin:constant
+  B0       = 2869.4
+  n0       = 1.0e27
+  t_total  = 1.67626e-12
+  R        = 50.2877e-6
+  R0       = 0.95*R
+  LB       = 0.25*R0
+  V0       = 0.1*c
+  r1       = sqrt(x^2+(y+1)^2)
+  r2       = sqrt(x^2+(y-1)^2)
+  n_p1     = 0.99*n0*(cos(pi*r1/2/R0))^2
+  n_p2     = 0.99*n0*(cos(pi*r2/2/R0))^2
+  v1       = V0*sin(pi*r1/R0)
+  v2       = V0*sin(pi*r2/R0)
+  mag1     = B0*sin((pi*(R0-r1))/2.0/LB)
+  mag2     = B0*sin((pi*(R0-r2))/2.0/LB)
+end:constant
+
+
+begin:control
+  nx = 5300
+  ny = 1325
+
+  # Final time of simulation
+  t_end = 0.5*t_total
+
+  # Size of domain
+  x_min = -4.0*R
+  x_max = 4.0*R
+  y_min = -1.0*R
+  y_max = R
+
+  nparticles = 64 * nx * ny
+  # nprocx= 8
+  # nprocy= 1
+end:control
+
+
+begin:boundaries
+  cpml_thickness  = 17
+  cpml_kappa_max  = 11
+  cpml_a_max      = 0.2
+  cpml_sigma_max  = 0.7
+
+  bc_x_min = cpml_outflow
+  bc_x_max = cpml_outflow
+  bc_y_min = periodic
+  bc_y_max = periodic
+end:boundaries
+
+
+begin:species
+  name           = ion
+  charge         = 1
+  mass           = 128.0
+  fraction       = 0.0832
+  number_density = if((r1 lt R0), n_p1, 0.0)
+  number_density = if((r2 lt R0), n_p2, number_density(ion))
+  
+  temperature_ev = 163800
+  drift_px       = if((r1 lt R0), 128.0*me*v1*x/r1, \
+                                  if((r2 lt R0), 128.0*me*v2*x/r2, 0.0))
+  drift_py       = if((r1 lt R0), 128.0*me*v1*(y+R)/r1, \
+                                  if((r2 lt R0), 128.0*me*v2*(y-R)/r2, 0.0))
+end:species
+
+
+begin:species
+  name           = electron
+  charge         = -1
+  mass           = 1.0
+  fraction       = 0.0832
+  number_density = number_density(ion)
+
+  temperature_ev = 163800
+  drift_px       = if((r1 lt R0), me*v1*x/r1, \
+                          if((r2 lt R0), me*v2*x/r2, 0,0))
+  drift_py       = if((r1 lt R0), me*v1*(y+R)/r1, \
+                          if((r2 lt R0), me*v2*(y-R)/r2, 0.0))
+end:species
+
+
+begin:species
+  name           = back_ion
+  charge         = 1
+  mass           = 128.0
+  fraction       = 0.4169
+  number_density = if((r1 lt R0) or (r2 lt R0), 0.0, 0.01*n0)
+
+  temperature = 300
+  bc_x_min    = heat_bath
+  bc_x_max    = heat_bath
+end:species
+
+
+begin:species
+  name           = back_electron
+  charge         = -1
+  mass           = 1.0
+  fraction       = 0.4169
+  number_density = if((r1 lt R0) or (r2 lt R0), 0.0, 0.01*n0)
+
+  temperature = 300
+  bc_x_min    = heat_bath
+  bc_x_max    = heat_bath
+end:species
+
+
+begin:fields
+  bx = if((R0-2*LB lt r1) and (r1 lt R0), mag1*(-y-R)/r1, \
+                if((R0-2*LB lt r2) and (r2 lt R0), mag2*(-y+R)/r2, 0.0))
+  by = if((R0-2*LB lt r1) and (r1 lt R0), mag1*x/r1, \
+                if((R0-2*LB lt r2) and (r2 lt R0), mag2*x/r2, 0.0))
+end:fields
+
+
+begin:output
+  # Simulated time between output dumps
+  dt_snapshot = 0.01*t_total
+
+  # Properties on grid
+  grid = always
+  ex = always
+  ey = always
+  ez = always
+  bx = always
+  by = always
+  bz = always
+  jx = always
+  jy = always
+  jz = always
+
+  number_density          = always + species
+  ekbar                   = always + species
+  temperature             = always + species
+  average_particle_energy = always + species
+
+  #other variables
+  absorption = always
+  distribution_functions = always
+  total_energy_sum = always
+end:output
+
+
+begin:dist_fn
+  name = en_total
+  ndims = 1
+
+  direction1 = dir_en
+  range1 = (1,1)
+  resolution1 = 5000
+
+  include_species:ion
+  include_species:back_ion
+  include_species:electron
+  include_species:back_electron
+end:dist_fn
+
+
+# begin:dist_fn
+#   name = en_small
+#   ndims = 1
+
+#   direction1 = dir_en
+#   range1 = (1,1)
+#   resolution1 = 1000
+#   restrict_x = (0.47*408*d0, 0.54*408*d0)
+#   restrict_y = (0.4*51*d0, 0.59*51*d0)
+
+#   include_species:electron
+#   include_species:positron
+# end:dist_fn
+
+
+# begin:dist_fn
+#   name = en_big
+#   ndims = 1
+
+#   direction1 = dir_en
+#   range1 = (1,1)
+#   resolution1 = 1000
+#   restrict_x = (0.37*408*d0, 0.63*408*d0)
+#   restrict_y = (0.37*51*d0, 0.63*51*d0)
+
+#   include_species:electron
+#   include_species:positron
+# end:dist_fn
+
+
+# begin:dist_fn
+#   name = x_en
+#   ndims = 2
+  
+#   direction1 = dir_x
+#   direction2 = dir_en
+
+#   range1 = (1,1)
+#   range2 = (1,1)
+#   resolution1 = 1
+#   resolution2 = 1000
+#   restrict_x = (25.0*d0, 26.0*d0)
+  
+#   include_species:positron
+#   include_species:electron
+# end:dist_fn
